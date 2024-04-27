@@ -7,11 +7,11 @@ spring:
       maxRequestSize: 200000000
   neo4j:
 #      url: bolt://192.168.20.153:7687  #3.x
-      url: neo4j://202.120.84.249:7474 #4.x
+      url: neo4j://202.120.84.249:7687 #4.x
       username: neo4j
       password: 123456789
   datasource:
-      url: jdbc:mysql://202.120.84.249:3306/boat?useSSL=false
+      url: jdbc:mysql://202.120.84.249:3306/kgdemo?useSSL=false&serverTimezone=UTC
       driverClassName: com.mysql.cj.jdbc.Driver
       username: root
       password: 123456
