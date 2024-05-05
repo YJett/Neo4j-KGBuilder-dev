@@ -158,6 +158,7 @@ export default {
     },
     //画布点击
     initContainerLeftClick(event) {
+      console.log(event)
       let _this = this;
       _this.$refs.menu_blank.init({ show: false });
       _this.$refs.menu_link.init({ show: false });

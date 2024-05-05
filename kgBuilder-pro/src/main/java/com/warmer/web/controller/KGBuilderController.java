@@ -102,6 +102,34 @@ public class KGBuilderController extends BaseController {
         }
     }
 
+
+    public static class CypherRequest {
+        private String cypher;
+
+        public String getCypher() {
+            return cypher;
+        }
+
+        public void setCypher(String cypher) {
+            this.cypher = cypher;
+        }
+    }
+        /*
+        *
+        * 用post方法接收cypher
+        * */
+        @PostMapping(value = "/getCypherResult1")
+        public R<KgDomain> getCypherResult1(@RequestBody CypherRequest request) {
+            try {
+                HashMap<String, Object> graphData = Neo4jUtil.getGraphNodeAndShip(request.getCypher());
+                return R.success(graphData);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return R.error(e.getMessage());
+            }
+        }
+
+
     /**
      * 获取某个领域指定节点拥有的上下级的节点数
      *

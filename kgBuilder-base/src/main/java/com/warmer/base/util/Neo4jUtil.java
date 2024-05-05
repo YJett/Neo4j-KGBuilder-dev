@@ -246,7 +246,7 @@ public class Neo4jUtil implements AutoCloseable {
      * @param cypherSql
      * @return
      */
-    public static List<HashMap<String, Object>> getGraphRelationShip(String cypherSql) {
+    public static List<HashMap<String, Object>>  getGraphRelationShip(String cypherSql) {
         List<HashMap<String, Object>> ents = new ArrayList<HashMap<String, Object>>();
         try (Session session = neo4jDriver.session()) {
             log.debug(cypherSql);
