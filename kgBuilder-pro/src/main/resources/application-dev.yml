@@ -11,11 +11,20 @@ spring:
       username: neo4j
       password: 123456789
   datasource:
-      url: jdbc:mysql://202.120.84.249:3306/kgdemo?useSSL=false&serverTimezone=UTC
+      url: jdbc:mysql://202.120.84.249:3306/kgdemo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       driverClassName: com.mysql.cj.jdbc.Driver
       username: root
       password: 123456
       type: com.zaxxer.hikari.HikariDataSource
+  kafka:
+    producer:
+      bootstrap-servers: 202.120.87.110:9093
+    consumer:
+      bootstrap-servers: 202.120.87.110:9093
+      group-id: group_id
+      auto-offset-reset: earliest
+
+
 mybatis:
   typeAliasesPackage: com.warmer.kgmaker.entity
   mapperLocations: classpath*:/mapping/*.xml
