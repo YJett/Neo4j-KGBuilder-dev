@@ -10,6 +10,11 @@ spring:
       url: neo4j://202.120.84.249:7687 #4.x
       username: neo4j
       password: 123456789
+      uri: neo4j+s://202.120.84.249:7687
+      authentication:
+        username: neo4j
+        password: 123456789
+
   datasource:
       url: jdbc:mysql://202.120.84.249:3306/kgdemo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       driverClassName: com.mysql.cj.jdbc.Driver
@@ -25,9 +30,17 @@ spring:
       auto-offset-reset: earliest
 
 
+
 mybatis:
   typeAliasesPackage: com.warmer.kgmaker.entity
   mapperLocations: classpath*:/mapping/*.xml
 file:
   serverurl:  http://202.120.84.249:8080
   location : C:\\kgmanager\\csv\\   # 原配置C:\\kgmanager\\csv\\  如果是Windows情况下，格式是 D:\\kgmanager\\csv\\   linx 格式"/home/kgmanager/csv/";
+
+logging:
+  level:
+    org:
+      springframework:
+        data:
+          neo4j=DEBUG:
