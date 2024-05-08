@@ -358,6 +358,7 @@ public class Neo4jUtil implements AutoCloseable {
                             rShips.put("uuid", uuid);
                             rShips.put("sourceId", sourceId);
                             rShips.put("targetId", targetId);
+                            rShips.put("type",rship.type());
                             ships.add(rShips);
                         } else if ("PATH".equals(typeName)) {
                             Path path = pair.value().asPath();
