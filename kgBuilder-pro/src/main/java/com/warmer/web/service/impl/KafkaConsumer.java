@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.warmer.web.entity.AbilityKnowledge;
 import com.warmer.web.entity.KnowledgePoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -15,7 +16,6 @@ import com.alibaba.otter.canal.client.kafka.KafkaCanalConnector;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Map;
-
 @Service
 public class KafkaConsumer {
 
@@ -95,6 +95,49 @@ public class KafkaConsumer {
             e.printStackTrace();
         }
     }
+
+
+    @KafkaListener(topics = "boat_jb_ability_knowledge", groupId = "your_group_id")
+    public void consumeAbilityKnowledge(String message) {
+        System.out.println(message);
+        try {
+            FlatMessage kafkaMessage = objectMapper.readValue(message, FlatMessage.class);
+            System.out.println(kafkaMessage);
+
+            // Extract data from kafkaMessage
+            Map<String, String> dataMap = kafkaMessage.getData().get(0);
+
+            AbilityKnowledge ak = new AbilityKnowledge();
+            ak.setSchId(Integer.parseInt(dataMap.get("schId")));
+            ak.setAbilityId(Integer.parseInt(dataMap.get("abilityId")));
+            ak.setKnowledgeId(Integer.parseInt(dataMap.get("knowledgeId")));
+
+            Timestamp createTimeStamp = Timestamp.valueOf(dataMap.get("createTime"));
+            LocalDateTime createLocalDateTime = createTimeStamp.toLocalDateTime();
+            ak.setCreateTime(createLocalDateTime);
+
+            Timestamp updateTimeStamp = Timestamp.valueOf(dataMap.get("updateTime"));
+            LocalDateTime updateLocalDateTime = updateTimeStamp.toLocalDateTime();
+            ak.setUpdateTime(updateLocalDateTime);
+
+            // Perform operation based on type
+            String type = kafkaMessage.getType();
+            if ("INSERT".equals(type)) {
+                // Create the relationship in Neo4j
+                // neo4jService.createRelationship(ak);
+            } else if ("UPDATE".equals(type)) {
+                // Handle update operation
+                // For this table, you might not need to handle updates,
+                // as it seems unlikely that the relationships would change.
+            } else if ("DELETE".equals(type)) {
+                // Handle delete operation
+                // neo4jService.deleteRelationship(ak);
+            }
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+    }
+
 
 
 
