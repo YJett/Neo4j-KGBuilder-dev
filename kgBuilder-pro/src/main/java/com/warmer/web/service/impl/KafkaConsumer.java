@@ -30,7 +30,6 @@ public class KafkaConsumer {
         try {
             FlatMessage kafkaMessage = objectMapper.readValue(message, FlatMessage.class);
             // Now you can use kafkaMessage as you wish
-            // For example, let's print it out
             System.out.println(kafkaMessage);
 
             // Extract data from kafkaMessage
@@ -52,7 +51,6 @@ public class KafkaConsumer {
             kp.setUpdateTime(updateLocalDateTime);
 
 
-
             // Perform operation based on type
             String type = kafkaMessage.getType();
             if ("INSERT".equals(type)) {
@@ -60,8 +58,37 @@ public class KafkaConsumer {
                 neo4jService.createNodeAndRelationship(kp);
             } else if ("UPDATE".equals(type)) {
                 // Handle update operation
+                // Extract old data from kafkaMessage
+                Map<String, String> oldDataMap = kafkaMessage.getOld().get(0); // Assuming there's at least one item in the old list
+
+                boolean nodeUpdateNeeded = false;
+                boolean relationshipUpdateNeeded = false;
+
+                // Iterate over the keys in oldDataMap
+                for (String key : oldDataMap.keySet()) {
+                    // Check if the value of the key has changed
+                    if (!dataMap.get(key).equals(oldDataMap.get(key))) {
+                        // If the key is 'upLevel', mark that a relationship update is needed
+                        if (key.equals("upLevel")) {
+                            relationshipUpdateNeeded = true;
+                        } else {
+                            // Otherwise, mark that a node update is needed
+                            nodeUpdateNeeded = true;
+                        }
+                    }
+                }
+                // After the loop, perform the updates if needed
+                if (nodeUpdateNeeded) {
+                    neo4jService.updateNode(kp);
+                }
+                if (relationshipUpdateNeeded) {
+                    neo4jService.updateRelationship(kp);
+                }
+
             } else if ("DELETE".equals(type)) {
                 // Handle delete operation
+                neo4jService.deleteNode(kp);
+
             }
 
         } catch (JsonProcessingException e) {
