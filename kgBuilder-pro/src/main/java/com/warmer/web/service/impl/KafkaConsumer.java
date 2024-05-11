@@ -1,20 +1,20 @@
 package com.warmer.web.service.impl;
 
-import com.alibaba.otter.canal.client.kafka.protocol.KafkaMessage;
 import com.alibaba.otter.canal.protocol.FlatMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.warmer.web.entity.AbilityKnowledge;
 import com.warmer.web.entity.KnowledgePoint;
+import com.warmer.web.service.Neo4jService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
-import com.alibaba.otter.canal.client.kafka.KafkaCanalConnector;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 @Service
 public class KafkaConsumer {
@@ -82,7 +82,7 @@ public class KafkaConsumer {
                     neo4jService.updateNode(kp);
                 }
                 if (relationshipUpdateNeeded) {
-                    neo4jService.updateRelationship(kp);
+                    neo4jService.updateKnowledgeRelationship(kp);
                 }
 
             } else if ("DELETE".equals(type)) {
@@ -104,39 +104,40 @@ public class KafkaConsumer {
             FlatMessage kafkaMessage = objectMapper.readValue(message, FlatMessage.class);
             System.out.println(kafkaMessage);
 
-            // Extract data from kafkaMessage
-            Map<String, String> dataMap = kafkaMessage.getData().get(0);
+            List<AbilityKnowledge> akList = new ArrayList<>();
 
-            AbilityKnowledge ak = new AbilityKnowledge();
-            ak.setSchId(Integer.parseInt(dataMap.get("schId")));
-            ak.setAbilityId(Integer.parseInt(dataMap.get("abilityId")));
-            ak.setKnowledgeId(Integer.parseInt(dataMap.get("knowledgeId")));
+            // Iterate over the data list
+            for (Map<String, String> dataMap : kafkaMessage.getData()) {
+                AbilityKnowledge ak = new AbilityKnowledge();
+                ak.setSchId(Integer.parseInt(dataMap.get("schId")));
+                ak.setAbilityId(Integer.parseInt(dataMap.get("abilityId")));
+                ak.setKnowledgeId(Integer.parseInt(dataMap.get("knowledgeId")));
 
-            Timestamp createTimeStamp = Timestamp.valueOf(dataMap.get("createTime"));
-            LocalDateTime createLocalDateTime = createTimeStamp.toLocalDateTime();
-            ak.setCreateTime(createLocalDateTime);
+                Timestamp createTimeStamp = Timestamp.valueOf(dataMap.get("createTime"));
+                LocalDateTime createLocalDateTime = createTimeStamp.toLocalDateTime();
+                ak.setCreateTime(createLocalDateTime);
 
-            Timestamp updateTimeStamp = Timestamp.valueOf(dataMap.get("updateTime"));
-            LocalDateTime updateLocalDateTime = updateTimeStamp.toLocalDateTime();
-            ak.setUpdateTime(updateLocalDateTime);
+                Timestamp updateTimeStamp = Timestamp.valueOf(dataMap.get("updateTime"));
+                LocalDateTime updateLocalDateTime = updateTimeStamp.toLocalDateTime();
+                ak.setUpdateTime(updateLocalDateTime);
 
-            // Perform operation based on type
+                akList.add(ak);
+            }
+
             String type = kafkaMessage.getType();
             if ("INSERT".equals(type)) {
-                // Create the relationship in Neo4j
-                // neo4jService.createRelationship(ak);
+                neo4jService.createAbilityKnowledgeNodesAndRelationships(akList);
             } else if ("UPDATE".equals(type)) {
-                // Handle update operation
-                // For this table, you might not need to handle updates,
-                // as it seems unlikely that the relationships would change.
+                neo4jService.updateAbilityKnowledgeNodes(akList);
             } else if ("DELETE".equals(type)) {
-                // Handle delete operation
-                // neo4jService.deleteRelationship(ak);
+                neo4jService.deleteAbilityKnowledgeNodes(akList);
             }
+
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
     }
+
 
 
 
