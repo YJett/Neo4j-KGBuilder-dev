@@ -7,19 +7,22 @@ import java.time.LocalDateTime;
 
 @Data
 public class JobAbility implements Serializable {
-    private Integer abilityid;
 
-    private String abilityno;
+    private Integer abilityId;
 
-    private String abilitynm;
+    private String abilityNo;
+
+    private String abilityNm;
 
     private Integer level;
 
-    private Integer upabilityid;
+    private Integer upabilityId;
 
-    private LocalDateTime createtime;
+    private LocalDateTime createTime;
 
-    private LocalDateTime updatetime;
+    private LocalDateTime updateTime;
+
+    private Integer jobId;
 
     private static final long serialVersionUID = 1L;
 }

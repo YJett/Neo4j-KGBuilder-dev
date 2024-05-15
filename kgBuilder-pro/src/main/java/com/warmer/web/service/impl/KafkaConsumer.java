@@ -5,7 +5,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.warmer.web.entity.AbilityKnowledge;
+import com.warmer.web.entity.JobAbility;
 import com.warmer.web.entity.KnowledgePoint;
+import com.warmer.web.service.AbilitySyncService;
 import com.warmer.web.service.Neo4jService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,10 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -26,6 +25,9 @@ public class KafkaConsumer {
 
     @Autowired
     private Neo4jService neo4jService;
+
+    @Autowired
+    private AbilitySyncService abilitySyncService;
 
     private final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -102,6 +104,87 @@ public class KafkaConsumer {
             e.printStackTrace();
         }
     }
+
+
+
+    @KafkaListener(topics = "boat_job_ability", groupId = "your_group_id")
+    public void consumeJobAbility(String message) {
+        System.out.println(message);
+        try {
+            FlatMessage kafkaMessage = objectMapper.readValue(message, FlatMessage.class);
+            System.out.println(kafkaMessage);
+
+            // Perform operation based on type
+            String type = kafkaMessage.getType();
+
+            // Extract data from kafkaMessage
+            List<Map<String, String>> dataList = kafkaMessage.getData();
+
+            for (Map<String, String> dataMap : dataList) {
+                JobAbility ab = new JobAbility();
+                ab.setAbilityId(Integer.parseInt(dataMap.get("abilityId")));
+                ab.setAbilityNo(dataMap.get("abilityNo"));
+                ab.setAbilityNm(dataMap.get("abilityNm"));
+                ab.setLevel(Integer.parseInt(dataMap.get("level")));
+                String upabilityIdStr = Objects.toString(dataMap.get("upabilityId"), null);
+                ab.setUpabilityId(upabilityIdStr != null ? Integer.parseInt(upabilityIdStr) : 0);
+                Timestamp createTimeStamp = Timestamp.valueOf(dataMap.get("createTime"));
+                LocalDateTime createLocalDateTime = createTimeStamp.toLocalDateTime();
+                ab.setCreateTime(createLocalDateTime);
+
+                Timestamp updateTimeStamp = Timestamp.valueOf(dataMap.get("updateTime"));
+                LocalDateTime updateLocalDateTime = updateTimeStamp.toLocalDateTime();
+                ab.setUpdateTime(updateLocalDateTime);
+
+                String jobIdStr = Objects.toString(dataMap.get("jobId"), null);
+                ab.setJobId(jobIdStr != null ? Integer.parseInt(jobIdStr) : 0);
+
+                if ("INSERT".equals(type)) {
+                    // Create the node and relationship in Neo4j
+                    abilitySyncService.createAbility(ab);
+                } else if ("UPDATE".equals(type)) {
+                    // Handle update operation
+                    // Extract old data from kafkaMessage
+                    List<Map<String, String>> oldDataList = kafkaMessage.getOld();
+
+                    for (Map<String, String> oldDataMap : oldDataList) {
+                        boolean nodeUpdateNeeded = false;
+                        boolean relationshipUpdateNeeded = false;
+
+                        // Iterate over the keys in oldDataMap
+                        for (String key : oldDataMap.keySet()) {
+                            // Check if the value of the key has changed
+                            if (!dataMap.get(key).equals(oldDataMap.get(key))) {
+                                // If the key is 'upabilityId', mark that a relationship update is needed
+                                if (key.equals("upabilityId")) {
+                                    relationshipUpdateNeeded = true;
+                                } else {
+                                    // Otherwise, mark that a node update is needed
+                                    nodeUpdateNeeded = true;
+                                }
+                            }
+                        }
+                        // After the loop, perform the updates if needed
+                        if (nodeUpdateNeeded) {
+                            abilitySyncService.updateAbility(ab);
+                        }
+                        if (relationshipUpdateNeeded) {
+                            // Here you might need to implement a method to update the relationship
+                            // abilitySyncService.updateAbilityRelationship(ab);
+                        }
+                    }
+
+                } else if ("DELETE".equals(type)) {
+                    // Handle delete operation
+                    abilitySyncService.deleteAbility(ab);
+                }
+            }
+
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+    }
+
 
 
 
