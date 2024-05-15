@@ -9,6 +9,7 @@ import com.warmer.web.entity.KnowledgePoint;
 import com.warmer.web.service.Neo4jService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -29,72 +30,75 @@ public class KafkaConsumer {
         System.out.println(message);
         try {
             FlatMessage kafkaMessage = objectMapper.readValue(message, FlatMessage.class);
-            // Now you can use kafkaMessage as you wish
             System.out.println(kafkaMessage);
-
-            // Extract data from kafkaMessage
-            Map<String, String> dataMap = kafkaMessage.getData().get(0); // Assuming there's at least one item in the data list
-
-            KnowledgePoint kp = new KnowledgePoint();
-            kp.setSchId(Integer.parseInt(dataMap.get("schId")));
-            kp.setKnowledgeId(Integer.parseInt(dataMap.get("knowledgeId")));
-            kp.setKnowledgeNm(dataMap.get("knowledgeNm"));
-            kp.setFlag(Integer.parseInt(dataMap.get("flag")));
-            kp.setUpLevel(Integer.parseInt(dataMap.get("upLevel")));
-
-            Timestamp createTimeStamp = Timestamp.valueOf(dataMap.get("createTime"));
-            LocalDateTime createLocalDateTime = createTimeStamp.toLocalDateTime();
-            kp.setCreateTime(createLocalDateTime);
-
-            Timestamp updateTimeStamp = Timestamp.valueOf(dataMap.get("updateTime"));
-            LocalDateTime updateLocalDateTime = updateTimeStamp.toLocalDateTime();
-            kp.setUpdateTime(updateLocalDateTime);
-
 
             // Perform operation based on type
             String type = kafkaMessage.getType();
-            if ("INSERT".equals(type)) {
-                // Create the node and relationship in Neo4j
-                neo4jService.createNodeAndRelationship(kp);
-            } else if ("UPDATE".equals(type)) {
-                // Handle update operation
-                // Extract old data from kafkaMessage
-                Map<String, String> oldDataMap = kafkaMessage.getOld().get(0); // Assuming there's at least one item in the old list
 
-                boolean nodeUpdateNeeded = false;
-                boolean relationshipUpdateNeeded = false;
+            // Extract data from kafkaMessage
+            List<Map<String, String>> dataList = kafkaMessage.getData();
 
-                // Iterate over the keys in oldDataMap
-                for (String key : oldDataMap.keySet()) {
-                    // Check if the value of the key has changed
-                    if (!dataMap.get(key).equals(oldDataMap.get(key))) {
-                        // If the key is 'upLevel', mark that a relationship update is needed
-                        if (key.equals("upLevel")) {
-                            relationshipUpdateNeeded = true;
-                        } else {
-                            // Otherwise, mark that a node update is needed
-                            nodeUpdateNeeded = true;
+            for (Map<String, String> dataMap : dataList) {
+                KnowledgePoint kp = new KnowledgePoint();
+                kp.setSchId(Integer.parseInt(dataMap.get("schId")));
+                kp.setKnowledgeId(Integer.parseInt(dataMap.get("knowledgeId")));
+                kp.setKnowledgeNm(dataMap.get("knowledgeNm"));
+                kp.setFlag(Integer.parseInt(dataMap.get("flag")));
+                kp.setUpLevel(Integer.parseInt(dataMap.get("upLevel")));
+
+                Timestamp createTimeStamp = Timestamp.valueOf(dataMap.get("createTime"));
+                LocalDateTime createLocalDateTime = createTimeStamp.toLocalDateTime();
+                kp.setCreateTime(createLocalDateTime);
+
+                Timestamp updateTimeStamp = Timestamp.valueOf(dataMap.get("updateTime"));
+                LocalDateTime updateLocalDateTime = updateTimeStamp.toLocalDateTime();
+                kp.setUpdateTime(updateLocalDateTime);
+
+                if ("INSERT".equals(type)) {
+                    // Create the node and relationship in Neo4j
+                    neo4jService.createNodeAndRelationship(kp);
+                } else if ("UPDATE".equals(type)) {
+                    // Handle update operation
+                    // Extract old data from kafkaMessage
+                    List<Map<String, String>> oldDataList = kafkaMessage.getOld();
+
+                    for (Map<String, String> oldDataMap : oldDataList) {
+                        boolean nodeUpdateNeeded = false;
+                        boolean relationshipUpdateNeeded = false;
+
+                        // Iterate over the keys in oldDataMap
+                        for (String key : oldDataMap.keySet()) {
+                            // Check if the value of the key has changed
+                            if (!dataMap.get(key).equals(oldDataMap.get(key))) {
+                                // If the key is 'upLevel', mark that a relationship update is needed
+                                if (key.equals("upLevel")) {
+                                    relationshipUpdateNeeded = true;
+                                } else {
+                                    // Otherwise, mark that a node update is needed
+                                    nodeUpdateNeeded = true;
+                                }
+                            }
+                        }
+                        // After the loop, perform the updates if needed
+                        if (nodeUpdateNeeded) {
+                            neo4jService.updateNode(kp);
+                        }
+                        if (relationshipUpdateNeeded) {
+                            neo4jService.updateKnowledgeRelationship(kp);
                         }
                     }
-                }
-                // After the loop, perform the updates if needed
-                if (nodeUpdateNeeded) {
-                    neo4jService.updateNode(kp);
-                }
-                if (relationshipUpdateNeeded) {
-                    neo4jService.updateKnowledgeRelationship(kp);
-                }
 
-            } else if ("DELETE".equals(type)) {
-                // Handle delete operation
-                neo4jService.deleteNode(kp);
-
+                } else if ("DELETE".equals(type)) {
+                    // Handle delete operation
+                    neo4jService.deleteNode(kp);
+                }
             }
 
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
     }
+
 
 
     @KafkaListener(topics = "boat_jb_ability_knowledge", groupId = "your_group_id")
@@ -150,9 +154,17 @@ public class KafkaConsumer {
     }
 
     @KafkaListener(topics = "boat_kp_knowledge_point1", groupId = "your_group_id")
-    public void consumeBoatKnowledgePoint(String message) {
-        // Logic for processing "boat_kp_knowledge_point" topic messages
-        System.out.println(message);
+    public void consumeMessage(String message, Acknowledgment acknowledgment) {
+        try {
+            // 处理消息的逻辑
+            System.out.println("Received message: " + message);
+
+            // 如果消息处理成功，手动确认消息
+            acknowledgment.acknowledge();
+        } catch (Exception e) {
+            // 如果处理消息时发生异常，可以不确认消息，这样消息会被重新投递
+            e.printStackTrace();
+        }
     }
 
     @KafkaListener(topics = "boat_jb_job", groupId = "your_group_id")
