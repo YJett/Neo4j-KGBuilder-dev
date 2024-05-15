@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.warmer.web.entity.AbilityKnowledge;
 import com.warmer.web.entity.KnowledgePoint;
 import com.warmer.web.service.Neo4jService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -17,6 +18,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+
+@Slf4j
 @Service
 public class KafkaConsumer {
 
@@ -44,8 +48,8 @@ public class KafkaConsumer {
                 kp.setKnowledgeId(Integer.parseInt(dataMap.get("knowledgeId")));
                 kp.setKnowledgeNm(dataMap.get("knowledgeNm"));
                 kp.setFlag(Integer.parseInt(dataMap.get("flag")));
-                kp.setUpLevel(Integer.parseInt(dataMap.get("upLevel")));
-
+                String upLevelStr = Objects.toString(dataMap.get("upLevel"), null);
+                kp.setUpLevel(upLevelStr != null ? Integer.parseInt(upLevelStr) : 0);
                 Timestamp createTimeStamp = Timestamp.valueOf(dataMap.get("createTime"));
                 LocalDateTime createLocalDateTime = createTimeStamp.toLocalDateTime();
                 kp.setCreateTime(createLocalDateTime);
