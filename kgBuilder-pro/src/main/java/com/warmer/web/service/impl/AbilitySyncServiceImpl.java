@@ -24,7 +24,7 @@ public class AbilitySyncServiceImpl implements AbilitySyncService {
         try (Session session = driver.session()) {
             String cypherQuery = "MERGE (n:Skill {abilityId: $abilityId, abilityNo: $abilityNo, abilityNm: $abilityNm, level: $level, upabilityId: $upabilityId, createTime: $createTime, updateTime: $updateTime, jobId: $jobId}) " +
                     "WITH n " +
-                    "MATCH (m:Skill {abilityId: $upabilityId}) " +
+                    "MATCH (m:Skill {abilityNo: $upabilityId}) " +
                     "MERGE (n)-[:HAS_PARENT]->(m)";
             Map<String, Object> parameters = new HashMap<>();
             parameters.put("abilityId", ab.getAbilityId());

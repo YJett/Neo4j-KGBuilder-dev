@@ -10,7 +10,7 @@ public class JobAbility implements Serializable {
 
     private Integer abilityId;
 
-    private String abilityNo;
+    private Integer abilityNo;
 
     private String abilityNm;
 

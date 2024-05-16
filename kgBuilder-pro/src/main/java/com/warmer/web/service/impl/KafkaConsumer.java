@@ -123,7 +123,7 @@ public class KafkaConsumer {
             for (Map<String, String> dataMap : dataList) {
                 JobAbility ab = new JobAbility();
                 ab.setAbilityId(Integer.parseInt(dataMap.get("abilityId")));
-                ab.setAbilityNo(dataMap.get("abilityNo"));
+                ab.setAbilityNo(Integer.parseInt(dataMap.get("abilityNo")));
                 ab.setAbilityNm(dataMap.get("abilityNm"));
                 ab.setLevel(Integer.parseInt(dataMap.get("level")));
                 String upabilityIdStr = Objects.toString(dataMap.get("upabilityId"), null);
