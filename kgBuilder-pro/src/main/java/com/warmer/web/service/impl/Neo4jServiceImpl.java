@@ -96,7 +96,7 @@ public class Neo4jServiceImpl implements Neo4jService {
         try (Session session = driver.session()) {
             String cypherQuery = "UNWIND $params AS param " +
                     "MERGE (kp:KnowledgePoint {schId: param.schId, knowledgeId: param.knowledgeId}) " +
-                    "MERGE (s:Skill {abilityId: param.abilityId}) " +
+                    "MERGE (s:Skill {abilityNo: param.abilityId}) " +
                     "MERGE (kp)-[:HAS_SKILL]->(s)";
             List<Map<String, Object>> parameters = akList.stream()
                     .map(ak -> {
@@ -120,7 +120,7 @@ public class Neo4jServiceImpl implements Neo4jService {
             String cypherQuery = "UNWIND $params AS param " +
                     "MERGE (kp:KnowledgePoint {schId: param.schId, knowledgeId: param.knowledgeId}) " +
                     "ON MATCH SET kp.updateTime = param.updateTime " +
-                    "MERGE (s:Skill {abilityId: param.abilityId}) " +
+                    "MERGE (s:Skill {abilityNo: param.abilityId}) " +
                     "ON MATCH SET s.updateTime = param.updateTime";
             List<Map<String, Object>> parameters = akList.stream()
                     .map(ak -> {
@@ -143,7 +143,7 @@ public class Neo4jServiceImpl implements Neo4jService {
     public void deleteAbilityKnowledgeNodes(List<AbilityKnowledge> akList) {
         try (Session session = driver.session()) {
             String cypherQuery = "UNWIND $params AS param " +
-                    "MATCH (kp:KnowledgePoint {schId: param.schId, knowledgeId: param.knowledgeId})-[r:HAS_SKILL]->(s:Skill {abilityId: param.abilityId}) " +
+                    "MATCH (kp:KnowledgePoint {schId: param.schId, knowledgeId: param.knowledgeId})-[r:HAS_SKILL]->(s:Skill {abilityNo: param.abilityId}) " +
                     "DELETE r";
             List<Map<String, Object>> parameters = akList.stream()
                     .map(ak -> {
