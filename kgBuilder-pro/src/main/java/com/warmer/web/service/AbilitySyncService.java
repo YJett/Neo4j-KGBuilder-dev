@@ -13,4 +13,6 @@ public interface AbilitySyncService {
     void createAbility(JobAbility ability);
     void updateAbility(JobAbility ability);
     void deleteAbility(JobAbility ability);
+    void clearAbilities();
+    void rebuildAbilityRelationships();
 }

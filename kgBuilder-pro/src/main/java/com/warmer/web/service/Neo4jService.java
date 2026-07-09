@@ -7,14 +7,23 @@ import java.util.List;
 
 
 public interface Neo4jService {
-    public void createNodeAndRelationship(KnowledgePoint kp);
-    public void updateNode(KnowledgePoint kp);
+    void createNodeAndRelationship(KnowledgePoint kp);
 
-    public void updateKnowledgeRelationship(KnowledgePoint kp);
+    void updateNode(KnowledgePoint kp);
 
-    public void deleteNode(KnowledgePoint kp);
+    void updateKnowledgeRelationship(KnowledgePoint kp);
+
+    void deleteNode(KnowledgePoint kp);
+
+    void clearKnowledgePoints();
+
+    void rebuildKnowledgeRelationships(Integer schId);
 
     void createAbilityKnowledgeNodesAndRelationships(List<AbilityKnowledge> akList);
+
     void updateAbilityKnowledgeNodes(List<AbilityKnowledge> akList);
+
     void deleteAbilityKnowledgeNodes(List<AbilityKnowledge> akList);
+
+    void clearAbilityKnowledgeRelationships();
 }

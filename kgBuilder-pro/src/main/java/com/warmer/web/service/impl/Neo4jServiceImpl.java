@@ -25,10 +25,9 @@ public class Neo4jServiceImpl implements Neo4jService {
     @Override
     public void createNodeAndRelationship(KnowledgePoint kp) {
         try (Session session = driver.session()) {
-            String cypherQuery = "MERGE (n:KnowledgePoint {schId: $schId, knowledgeId: $knowledgeId, knowledgeNm: $knowledgeNm, flag: $flag, upLevel: $upLevel, createTime: $createTime, updateTime: $updateTime}) " +
-                    "WITH n " +
-                    "MATCH (m:KnowledgePoint {knowledgeId: $upLevel}) " +
-                    "MERGE (n)-[:HAS_PARENT]->(m)";
+            String cypherQuery = "MERGE (n:KnowledgePoint {schId: $schId, knowledgeId: $knowledgeId}) " +
+                    "SET n.knowledgeNm = $knowledgeNm, n.flag = $flag, n.upLevel = $upLevel, " +
+                    "n.createTime = $createTime, n.updateTime = $updateTime";
             Map<String, Object> parameters = new HashMap<>();
             parameters.put("schId", kp.getSchId());
             parameters.put("knowledgeId", kp.getKnowledgeId());
@@ -38,7 +37,8 @@ public class Neo4jServiceImpl implements Neo4jService {
             parameters.put("createTime", kp.getCreateTime());
             parameters.put("updateTime", kp.getUpdateTime());
             session.run(cypherQuery, parameters);
-            log.info("insert kp {}",kp);
+            updateKnowledgeRelationship(kp);
+            log.info("synced knowledge point {}", kp);
         }
     }
 
@@ -64,15 +64,18 @@ public class Neo4jServiceImpl implements Neo4jService {
     public void updateKnowledgeRelationship(KnowledgePoint kp) {
         try (Session session = driver.session()) {
             String cypherQuery = "MATCH (n:KnowledgePoint {schId: $schId, knowledgeId: $knowledgeId})-[r:HAS_PARENT]->() " +
-                    "DELETE r " +
-                    "WITH n " +
-                    "MATCH (m:KnowledgePoint {knowledgeId: $upLevel}) " +
-                    "MERGE (n)-[:HAS_PARENT]->(m)";
+                    "DELETE r";
             Map<String, Object> parameters = new HashMap<>();
             parameters.put("schId", kp.getSchId());
             parameters.put("knowledgeId", kp.getKnowledgeId());
-            parameters.put("upLevel", kp.getUpLevel());
             session.run(cypherQuery, parameters);
+            if (kp.getUpLevel() != null && kp.getUpLevel() > 0) {
+                String relCypher = "MATCH (n:KnowledgePoint {schId: $schId, knowledgeId: $knowledgeId}) " +
+                        "MATCH (m:KnowledgePoint {schId: $schId, knowledgeId: $upLevel}) " +
+                        "MERGE (n)-[:HAS_PARENT]->(m)";
+                parameters.put("upLevel", kp.getUpLevel());
+                session.run(relCypher, parameters);
+            }
             log.info("Updated relationship: {}", kp);
 
         }
@@ -88,6 +91,35 @@ public class Neo4jServiceImpl implements Neo4jService {
             parameters.put("knowledgeId", kp.getKnowledgeId());
             session.run(cypherQuery, parameters);
             log.info("Deleted node with schId: {}, knowledgeId: {}", kp.getSchId(), kp.getKnowledgeId());
+        }
+    }
+
+    @Override
+    public void clearKnowledgePoints() {
+        try (Session session = driver.session()) {
+            session.run("MATCH (n:KnowledgePoint) DETACH DELETE n");
+            log.info("Cleared KnowledgePoint graph nodes");
+        }
+    }
+
+    @Override
+    public void rebuildKnowledgeRelationships(Integer schId) {
+        try (Session session = driver.session()) {
+            if (schId == null) {
+                session.run("MATCH (:KnowledgePoint)-[r:HAS_PARENT]->(:KnowledgePoint) DELETE r");
+                session.run("MATCH (n:KnowledgePoint) " +
+                        "WHERE n.upLevel IS NOT NULL AND n.upLevel <> 0 " +
+                        "MATCH (m:KnowledgePoint {schId: n.schId, knowledgeId: n.upLevel}) " +
+                        "MERGE (n)-[:HAS_PARENT]->(m)");
+            } else {
+                Map<String, Object> params = Collections.singletonMap("schId", schId);
+                session.run("MATCH (:KnowledgePoint {schId: $schId})-[r:HAS_PARENT]->(:KnowledgePoint) DELETE r", params);
+                session.run("MATCH (n:KnowledgePoint {schId: $schId}) " +
+                        "WHERE n.upLevel IS NOT NULL AND n.upLevel <> 0 " +
+                        "MATCH (m:KnowledgePoint {schId: $schId, knowledgeId: n.upLevel}) " +
+                        "MERGE (n)-[:HAS_PARENT]->(m)", params);
+            }
+            log.info("Rebuilt KnowledgePoint parent relationships, schId={}", schId);
         }
     }
 
@@ -157,6 +189,14 @@ public class Neo4jServiceImpl implements Neo4jService {
             akList.forEach(ak -> log.info("Deleted relationship: {}", ak));
 
             session.run(cypherQuery, Collections.singletonMap("params", parameters));
+        }
+    }
+
+    @Override
+    public void clearAbilityKnowledgeRelationships() {
+        try (Session session = driver.session()) {
+            session.run("MATCH (:KnowledgePoint)-[r:HAS_SKILL]->(:Skill) DELETE r");
+            log.info("Cleared KnowledgePoint to Skill relationships");
         }
     }
 

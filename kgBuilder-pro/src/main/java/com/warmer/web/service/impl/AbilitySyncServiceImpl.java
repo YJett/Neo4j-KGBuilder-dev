@@ -22,10 +22,9 @@ public class AbilitySyncServiceImpl implements AbilitySyncService {
     @Override
     public void createAbility(JobAbility ab) {
         try (Session session = driver.session()) {
-            String cypherQuery = "MERGE (n:Skill {abilityId: $abilityId, abilityNo: $abilityNo, abilityNm: $abilityNm, level: $level, upabilityId: $upabilityId, createTime: $createTime, updateTime: $updateTime, jobId: $jobId}) " +
-                    "WITH n " +
-                    "MATCH (m:Skill {abilityNo: $upabilityId}) " +
-                    "MERGE (n)-[:HAS_PARENT]->(m)";
+            String cypherQuery = "MERGE (n:Skill {abilityId: $abilityId}) " +
+                    "SET n.abilityNo = $abilityNo, n.abilityNm = $abilityNm, n.level = $level, " +
+                    "n.upabilityId = $upabilityId, n.createTime = $createTime, n.updateTime = $updateTime, n.jobId = $jobId";
             Map<String, Object> parameters = new HashMap<>();
             parameters.put("abilityId", ab.getAbilityId());
             parameters.put("abilityNo", ab.getAbilityNo());
@@ -36,7 +35,7 @@ public class AbilitySyncServiceImpl implements AbilitySyncService {
             parameters.put("updateTime", ab.getUpdateTime());
             parameters.put("jobId", ab.getJobId());
             session.run(cypherQuery, parameters);
-            log.info("insert ability {}", ab);
+            log.info("synced ability {}", ab);
         }
     }
 
@@ -68,6 +67,27 @@ public class AbilitySyncServiceImpl implements AbilitySyncService {
             parameters.put("abilityId", ab.getAbilityId());
             session.run(cypherQuery, parameters);
             log.info("Deleted ability with abilityId: {}", ab.getAbilityId());
+        }
+    }
+
+    @Override
+    public void clearAbilities() {
+        try (Session session = driver.session()) {
+            String cypherQuery = "MATCH (n:Skill) DETACH DELETE n";
+            session.run(cypherQuery);
+            log.info("Cleared Skill graph nodes");
+        }
+    }
+
+    @Override
+    public void rebuildAbilityRelationships() {
+        try (Session session = driver.session()) {
+            session.run("MATCH (:Skill)-[r:HAS_PARENT]->(:Skill) DELETE r");
+            session.run("MATCH (n:Skill) " +
+                    "WHERE n.upabilityId IS NOT NULL AND n.upabilityId <> 0 " +
+                    "MATCH (m:Skill {abilityNo: n.upabilityId}) " +
+                    "MERGE (n)-[:HAS_PARENT]->(m)");
+            log.info("Rebuilt Skill parent relationships");
         }
     }
 }

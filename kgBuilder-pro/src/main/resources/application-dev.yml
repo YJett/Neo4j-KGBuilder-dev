@@ -21,22 +21,26 @@ spring:
       username: root
       password: 123456
       type: com.zaxxer.hikari.HikariDataSource
-  kafka:
-    producer:
-      bootstrap-servers: 202.120.87.110:9093
-    consumer:
-      bootstrap-servers: 202.120.87.110:9093
-      group-id: group_id
-      auto-offset-reset: earliest
-
-
-
 mybatis:
   typeAliasesPackage: com.warmer.kgmaker.entity
   mapperLocations: classpath*:/mapping/*.xml
 file:
   serverurl:  http://202.120.84.249:8080
   location : C:\\kgmanager\\csv\\   # 原配置C:\\kgmanager\\csv\\  如果是Windows情况下，格式是 D:\\kgmanager\\csv\\   linx 格式"/home/kgmanager/csv/";
+
+sync:
+  enabled: true
+  scheduled: true
+  fixed-delay-ms: 900000
+  initial-delay-ms: 60000
+  incremental-lookback-minutes: 60
+  mysql:
+    url: ${SYNC_MYSQL_URL:jdbc:mysql://202.120.84.249:3306/boat-gxjd?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${SYNC_MYSQL_USERNAME:canal}
+    password: ${SYNC_MYSQL_PASSWORD:canal}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    maximum-pool-size: 5
+    minimum-idle: 1
 
 logging:
   level:
