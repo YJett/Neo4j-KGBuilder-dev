@@ -31,11 +31,11 @@ file:
 sync:
   enabled: true
   scheduled: true
-  fixed-delay-ms: 900000
-  initial-delay-ms: 60000
-  incremental-lookback-minutes: 60
+  fixed-delay-ms: 600000
+  initial-delay-ms: 120000
+  incremental-lookback-minutes: 20
   mysql:
-    url: ${SYNC_MYSQL_URL:jdbc:mysql://202.120.84.249:3306/boat-gxjd?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    url: ${SYNC_MYSQL_URL:jdbc:mysql://202.120.84.249:3306/boat?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
     username: ${SYNC_MYSQL_USERNAME:canal}
     password: ${SYNC_MYSQL_PASSWORD:canal}
     driver-class-name: com.mysql.cj.jdbc.Driver

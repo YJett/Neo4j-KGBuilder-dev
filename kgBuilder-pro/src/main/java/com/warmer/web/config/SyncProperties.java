@@ -10,9 +10,9 @@ import org.springframework.context.annotation.Configuration;
 public class SyncProperties {
     private boolean enabled = true;
     private boolean scheduled = true;
-    private long fixedDelayMs = 900000L;
-    private long initialDelayMs = 60000L;
-    private long incrementalLookbackMinutes = 60L;
+    private long fixedDelayMs = 600000L;
+    private long initialDelayMs = 120000L;
+    private long incrementalLookbackMinutes = 20L;
     private Mysql mysql = new Mysql();
 
     @Data
