@@ -60,7 +60,17 @@ public class CategoryNodeServiceImpl implements CategoryNodeService {
 
     @Override
     public void updateSystemCodeFullPath(Long categoryId, String fileUuid) {
-        categoryNodeRepository.updateSystemCodeFullPath(categoryId,fileUuid);
+        List<CategoryNode> nodes = categoryNodeRepository.selectByCategoryId(categoryId);
+        Map<Integer, CategoryNode> nodesById = new HashMap<>();
+        for (CategoryNode node : nodes) {
+            nodesById.put(node.getCategoryNodeId(), node);
+        }
+
+        Map<Integer, String> paths = new HashMap<>();
+        for (CategoryNode node : nodes) {
+            String path = resolveSystemCode(node, nodesById, paths, new HashSet<Integer>());
+            categoryNodeRepository.updateCodeByPrimaryKey(node.getCategoryNodeId(), path);
+        }
     }
 
     @Override
@@ -129,17 +139,44 @@ public class CategoryNodeServiceImpl implements CategoryNodeService {
 
     @Override
     public List<CategoryNode> queryForTree(Long categoryId, Integer categoryNodeId) {
-        return categoryNodeRepository.queryForTree(categoryId,categoryNodeId);
+        List<CategoryNode> nodes = categoryNodeRepository.selectByCategoryId(categoryId);
+        Map<Integer, List<CategoryNode>> childrenByParent = new HashMap<>();
+        for (CategoryNode node : nodes) {
+            Integer parentId = node.getParentId();
+            childrenByParent.computeIfAbsent(parentId, ignored -> new ArrayList<CategoryNode>()).add(node);
+        }
+
+        List<CategoryNode> result = new ArrayList<>();
+        Deque<Integer> pending = new ArrayDeque<>();
+        Set<Integer> visited = new HashSet<>();
+        pending.add(categoryNodeId);
+        while (!pending.isEmpty()) {
+            Integer parentId = pending.removeFirst();
+            if (!visited.add(parentId)) {
+                continue;
+            }
+            List<CategoryNode> children = childrenByParent.get(parentId);
+            if (children == null) {
+                continue;
+            }
+            result.addAll(children);
+            for (CategoryNode child : children) {
+                pending.addLast(child.getCategoryNodeId());
+            }
+        }
+        result.sort(Comparator.comparing(CategoryNode::getTreeLevel, Comparator.nullsLast(Integer::compareTo))
+                .thenComparing(CategoryNode::getCategoryNodeId));
+        return result;
     }
 
     @Override
     public List<CategoryNode> selectTreeForParent(Integer categoryNodeId) {
-        return categoryNodeRepository.selectTreeForParent(categoryNodeId);
+        return collectParentChain(categoryNodeRepository.selectByPrimaryKey(categoryNodeId));
     }
 
     @Override
     public List<CategoryNode> selectTreeForParentBySystemCode(String systemCode) {
-        return categoryNodeRepository.selectTreeForParentBySystemCode(systemCode);
+        return collectParentChain(categoryNodeRepository.selectBySystemCode(systemCode));
     }
 
     @Override
@@ -149,8 +186,47 @@ public class CategoryNodeServiceImpl implements CategoryNodeService {
 
     @Override
     public List<TreeNode> getTreeData(Long categoryId, Integer categoryNodeId) {
-        List<CategoryNode> CategoryNodes = categoryNodeRepository.queryForTree(categoryId, categoryNodeId);
+        List<CategoryNode> CategoryNodes = queryForTree(categoryId, categoryNodeId);
         return getTree(categoryNodeId, CategoryNodes);
+    }
+
+    private String resolveSystemCode(CategoryNode node, Map<Integer, CategoryNode> nodesById,
+                                     Map<Integer, String> paths, Set<Integer> visiting) {
+        Integer nodeId = node.getCategoryNodeId();
+        String cached = paths.get(nodeId);
+        if (cached != null) {
+            return cached;
+        }
+        if (!visiting.add(nodeId)) {
+            return String.valueOf(nodeId);
+        }
+
+        String path = String.valueOf(nodeId);
+        Integer parentId = node.getParentId();
+        CategoryNode parent = parentId == null ? null : nodesById.get(parentId);
+        if (parentId != null && parentId != 0 && parent != null) {
+            path = resolveSystemCode(parent, nodesById, paths, visiting) + "/" + nodeId;
+        }
+        visiting.remove(nodeId);
+        paths.put(nodeId, path);
+        return path;
+    }
+
+    private List<CategoryNode> collectParentChain(CategoryNode start) {
+        List<CategoryNode> result = new ArrayList<>();
+        Set<Integer> visited = new HashSet<>();
+        CategoryNode current = start;
+        while (current != null && current.getCategoryNodeId() != null
+                && visited.add(current.getCategoryNodeId())) {
+            result.add(current);
+            Integer parentId = current.getParentId();
+            current = parentId == null || parentId == 0
+                    ? null
+                    : categoryNodeRepository.selectByPrimaryKey(parentId);
+        }
+        result.sort(Comparator.comparing(CategoryNode::getTreeLevel, Comparator.nullsLast(Integer::compareTo))
+                .thenComparing(CategoryNode::getCategoryNodeId));
+        return result;
     }
 
     private List<TreeNode> getTree(int parentId, List<CategoryNode> nodeList) {

@@ -29,8 +29,6 @@ public interface CategoryNodeDao {
 
     void updateNodeRelation(@Param("categoryId")Long categoryId,@Param("fileUuid")String fileUuid,@Param("categoryNodeId")Integer categoryNodeId);
 
-    void updateSystemCodeFullPath(@Param("categoryId")Long categoryId,@Param("fileUuid")String fileUuid);
-
     void updateTreeLevel(@Param("categoryId")Long categoryId);
 
     int updateLeafStatusByPrimaryKey(@Param("categoryNodeId")Integer categoryNodeId,@Param("isLeaf")Integer isLeaf);
@@ -39,16 +37,12 @@ public interface CategoryNodeDao {
 
     List<CategoryNode> selectByParentId(@Param("categoryId")Long categoryId, @Param("parentId") Integer parentId);
 
+    List<CategoryNode> selectByCategoryId(@Param("categoryId") Long categoryId);
+
+    CategoryNode selectBySystemCode(@Param("systemCode") String systemCode);
+
     List<CategoryNode> selectByParentIdAndName(@Param("categoryId")Long categoryId,@Param("parentId") Integer parentId,@Param("categoryNodeName") String categoryNodeName);
 
-    /**
-     * 获取当前分类的所有节点数据,使用mysql8.0递归查询
-     * @param categoryId 指定分类id
-     * @return 当前分类的所有节点数据
-     */
-    List<CategoryNode> queryForTree(@Param("categoryId") Long categoryId, @Param("categoryNodeId") Integer categoryNodeId);
-    List<CategoryNode> selectTreeForParent(@Param("categoryNodeId") Integer categoryNodeId);
-    List<CategoryNode> selectTreeForParentBySystemCode(@Param("systemCode") String systemCode);
     List<CategoryNode> selectRecentEditNode(@Param("categoryId") Long categoryId);
 
     /**

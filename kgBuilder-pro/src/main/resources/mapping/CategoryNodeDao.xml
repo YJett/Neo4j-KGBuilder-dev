@@ -51,36 +51,19 @@
         from kg_category
         where CategoryNodeId = #{categoryNodeId}
     </select>
-    <!--由上而下 查找本级及下级所有节点-->
-    <select id="queryForTree"  resultMap="searchCategoryMap">
-        with recursive r as
-       (
-           SELECT
-               CategoryNodeId,CategoryNodeName,TreeLevel,ParentId,IsLeaf
-           FROM
-               kg_category WHERE CategoryId =#{categoryId,jdbcType=INTEGER} and Status=1 and ParentId=#{categoryNodeId}
-           union all
-           select c.CategoryNodeId,c.CategoryNodeName ,c.TreeLevel,c.ParentId,c.IsLeaf from kg_category c,r where r.CategoryNodeId = c.ParentId
-       )select CategoryNodeId,CategoryNodeName ,TreeLevel,ParentId,IsLeaf from r
+    <select id="selectByCategoryId" resultMap="searchCategoryMap">
+        select
+        <include refid="Base_Column_List" />
+        from kg_category
+        where CategoryId = #{categoryId} and Status = 1
     </select>
 
-    <!--  通过categoryNodeId由下而上查询本级及本级所有的父级节点-->
-    <select id="selectTreeForParent" resultMap="searchCategoryMap">
-        with recursive r as
-       (
-           select CategoryNodeId,CategoryNodeName,TreeLevel,ParentId,IsLeaf from kg_category where CategoryNodeId =#{categoryNodeId}
-           union all
-           select c.CategoryNodeId,c.CategoryNodeName,c.TreeLevel,c.ParentId,c.IsLeaf from kg_category c,r where c.CategoryNodeId=r.ParentId
-       ) select CategoryNodeId,CategoryNodeName,TreeLevel,ParentId,IsLeaf from r order by TreeLevel;
-    </select>
-    <!-- 通过编码systemCode由下而上查询本级及本级所有的父级节点-->
-    <select id="selectTreeForParentBySystemCode" resultMap="searchCategoryMap">
-        with recursive r as
-       (
-           select CategoryNodeId,CategoryNodeName,SystemCode,CategoryId,TreeLevel,ParentId,IsLeaf from kg_category where SystemCode =#{systemCode}
-           union all
-           select c.CategoryNodeId,c.CategoryNodeName,c.SystemCode,c.TreeLevel,c.ParentId,c.IsLeaf from kg_category c,r where c.CategoryNodeId=r.ParentId
-       ) select CategoryNodeId,CategoryNodeName,SystemCode,TreeLevel,ParentId,IsLeaf from r order by TreeLevel;
+    <select id="selectBySystemCode" resultMap="searchCategoryMap">
+        select
+        <include refid="Base_Column_List" />
+        from kg_category
+        where SystemCode = #{systemCode} and Status = 1
+        limit 1
     </select>
     <!-- 最近编辑过的节点-->
     <select id="selectRecentEditNode" resultMap="searchCategoryMap">
@@ -157,19 +140,6 @@
         update kg_category
         set SystemCode=CategoryNodeId
         where CategoryId = #{categoryId,jdbcType=INTEGER}  and FileUuid=#{fileUuid}
-    </update>
-    <!--批量更新systemCode-->
-    <update id="updateSystemCodeFullPath">
-        update kg_category w ,(
-            with recursive r as
-             (
-                     select systemCode,CategoryNodeName,ParentId,CategoryNodeId from kg_category where ParentId=0  and  CategoryId=#{categoryId,jdbcType=INTEGER}
-                     union all
-                     select CONCAT(r.systemCode, '/',c.CategoryNodeId) ,c.CategoryNodeName,c.ParentId ,c.CategoryNodeId from kg_category c,r where r.CategoryNodeId=c.ParentId and c.FileUuid=#{fileUuid}
-             ) select systemCode,CategoryNodeName,ParentId,CategoryNodeId from r
-         )  dd
-         set w.SystemCode=dd.systemCode
-         where dd.CategoryNodeId=w.CategoryNodeId  and w.CategoryId=#{categoryId,jdbcType=INTEGER}
     </update>
     <update id="updateTreeLevel">
         update kg_category set TreeLevel=LENGTH(SystemCode) - LENGTH(REPLACE(SystemCode,'/','' )) where CategoryId=#{categoryId,jdbcType=INTEGER}

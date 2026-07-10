@@ -41,7 +41,7 @@ public interface CategoryNodeService {
     List<CategoryNode> selectByParentIdAndName(Long categoryId,Integer parentId,String categoryNodeName);
 
     /**
-     * 获取当前分类的所有节点数据,使用mysql8.0递归查询
+     * 获取当前分类的所有节点数据
      * @param categoryId 指定分类id
      * @return 当前分类的所有节点数据
      */

@@ -22,7 +22,7 @@ public class DbUtils {
     private static HashMap<String, JdbcTemplate> urlAndJdbcTemplate = new HashMap<>();
     
     /**
-     * 获取数据库字典信息（mysql8.0可用）
+     * 获取数据库字典信息
      */
     public static HashMap<String, ArrayList<HashMap<String, String>>> getMetaData(String dbType, String dbName, String jdbcUrl, String username, String password, String driverClassName) {
         ResultSet rs = null;
